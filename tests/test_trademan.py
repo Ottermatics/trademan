@@ -18,7 +18,7 @@ class TestTrademan(unittest.TestCase):
     def test_market_dl(self):
         """gets appl"""
         dl = data.get_tickers("AAPL")
-        perf = data.data_db[f"perf/AAPL"]
+        perf = data.data_db[f"perf/AAPL".lower()]
 
     def test_cli(self):
         os.system(
