@@ -10,7 +10,6 @@ import time, random
 import tempfile
 
 
-
 FORMAT = "%(asctime)s %(message)s"
 logging.basicConfig(level=20, format=FORMAT)
 log = logging.getLogger("trade-data")
@@ -53,7 +52,7 @@ def _dl(ticker, select=None, delay=5):
     """smartly accesses diskcache data if it exists, else download it"""
     out = {}
 
-    cur_count = data_db.incr('dl_counter',default=0)
+    cur_count = data_db.incr("dl_counter", default=0)
 
     failures = data_db.get(f"ticker_failures", [])
     if ticker in failures:
@@ -71,10 +70,10 @@ def _dl(ticker, select=None, delay=5):
             else:
                 dlwait = delay * (1 + random.random() / 2)
                 log.info(f"downloading {dk}/{ticker} after: {dlwait}s")
-                
+
                 if cur_count > 15:
-                    #first 10 free
-                    time.sleep(dlwait*(1+cur_count*0.1/15))
+                    # first 10 free
+                    time.sleep(dlwait * (1 + cur_count * 0.1 / 15))
 
                 dlip = func(yfobj)
                 set_kw = {"tag": dk, **db_set_keys.get(dk, {})}
