@@ -111,7 +111,7 @@ jobs:
 
 
   build:
-    needs: check-version
+    needs: [check-version]
     runs-on: ubuntu-latest
     strategy:
       matrix:
