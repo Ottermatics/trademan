@@ -1,0 +1,112 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trademan"
+version = "0.1.0"
+description = "Trade and analyze stocks with portfolio optimization"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Kevin Russell", email = "kevin@ottermatics.com"}
+]
+keywords = ["trading", "portfolio", "optimization", "stocks", "finance"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = [
+    "PyPortfolioOpt",
+    "randomname", 
+    "numpy",
+    "scipy",
+    "cvxpy",
+    "yfinance",
+    "matplotlib",
+    "diskcache",
+    "scikit-learn",
+    "pandas",
+    "pytz",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "black>=21.7b0",
+    "flake8>=3.7.8",
+    "bump2version>=1.0.1",
+    "wheel",
+    "twine",
+    "sphinx>=4.0.0",
+    "sphinx-rtd-theme",
+    "coverage>=4.5.4",
+    "tox>=3.14.0",
+    "watchdog>=0.9.0",
+    "tomli>=1.2.0;python_version<'3.11'",
+]
+
+[project.urls]
+Homepage = "https://github.com/ottermatics/trademan"
+Repository = "https://github.com/ottermatics/trademan"
+Issues = "https://github.com/ottermatics/trademan/issues"
+
+[project.scripts]
+market_dl = "trademan.data:main"
+trademan = "trademan.portfolio:cli"
+
+[tool.setuptools.packages.find]
+include = ["trademan*"]
+
+[tool.setuptools.package-data]
+trademan = ["*.csv", "*.png"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["trademan"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]

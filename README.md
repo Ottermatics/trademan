@@ -1,62 +1,150 @@
-### What Is This?
-`trademan` is a utility to gather market data and generate optimal portfolios via a CLI interface. Data is provided by [yfinance](https://pypi.org/project/yfinance/) and portfolio optimization is done with [PyPortfolioOpt](https://pyportfolioopt.readthedocs.io/en/latest/). Stock data is cached to a diskcache for a week to prevent excess YFinance calls.
+# Trademan
 
-### How To Install It:
-`pip install git+https://github.com/SoundsSerious/trademan.git@v0.1.0`
+[![PyPI version](https://badge.fury.io/py/trademan.svg)](https://badge.fury.io/py/trademan)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](https://ottermatics.github.io/trademan/)
 
-### How Do I Use It:
-The current interface is provided by cli and matplotlib plots
+A Python library and CLI tool for gathering market data and generating optimal portfolios using modern portfolio theory.
 
-##### Download Market Data:
-`market_dl` will download snp500 and etfs and save data to a diskcache location customizable via env var: `TRADEMAN_DATA_DIR`
+## Features
 
-##### Trademan Portfolio Optimizer:
-`trademan` CLI has the following CLI arguments
+- 📊 **Market Data Collection**: Automated downloading and caching of S&P 500 and ETF data via yfinance
+- 🎯 **Portfolio Optimization**: Multiple optimization strategies (Sharpe ratio, minimum volatility, etc.)
+- 📈 **Visualization**: Generate beautiful portfolio allocation charts
+- 🚀 **CLI Interface**: Easy-to-use command-line tools for quick analysis
+- 🐍 **Python API**: Full programmatic access for custom workflows
+- 💾 **Smart Caching**: Intelligent data caching to minimize API calls
 
+## Installation
+
+Install from PyPI:
 ```bash
-usage: Portfolio Generator [-h] [-risk {covariance,ledoit_wolf}] [-retrn {mean}]
-                           [-opt {sharpe,min_volatility,eff_return,eff_risk}] [-cls {etfs,stocks,all}] [-alloc ALLOC]
-                           [-name NAME] [-filename FILENAME] [-rfr RFR] [-gamma GAMMA] [-cycl-err CYCL_ERR]
-                           [-std-err STD_ERR] [-min-wght MIN_WGHT] [-max-wght MAX_WGHT] [-in INCLUDE] [-ex EXCLUDE]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -risk {covariance,ledoit_wolf}
-                        select the risk model, standard covariance or the extremity filtering `ledoit wolf` model
-  -retrn {mean}         return model - mean historical performance averages
-  -opt {sharpe,min_volatility,eff_return,eff_risk}
-                        optimization model: maximum risk to return model via sharpe, min_volatility only considers
-                        risk, and efficient models will try to achieve 90 percent of the best performing asset
-  -cls {etfs,stocks,all}
-                        choose which type of items to trade
-  -alloc ALLOC          choose the amount of money to allocate, this will label the output chart with the number of
-                        shares to purchase
-  -name NAME            add a name to the portfolio, if none provided a randomly generated name will be created
-  -filename FILENAME    where to store the file, by default it will be stored in a dir set by `TRADEMAN_MEDIA_DIR`
-  -rfr RFR              the risk free rate, adjusted per daily returns
-  -gamma GAMMA          the weight regularizer, large values penalize small weight values, make 0 to not penalize
-                        small weights
-  -cycl-err CYCL_ERR    default: 0| penalize new assets returns by a factor of economic cycle: `cycle-err x standard
-                        error x (10/Nyears)^2`
-  -std-err STD_ERR      default: 0| penalize returns by subtracting the `std-err x std-dev`
-  -min-wght MIN_WGHT    assets less than this percent are filtered from the final portfolio
-  -max-wght MAX_WGHT    assets are limited to this max percentage
-  -in INCLUDE, --include INCLUDE
-                        csv of a strict include on the ticker name
-  -ex EXCLUDE, --exclude EXCLUDE
-                        csv of a strict exclude on the ticker name
+pip install trademan
 ```
 
-##### Examples
-1. Make A Portfolio Of Best Performing SNP500 Stocks Penalizing Short Lived Assets By 10X With A Max Asset Allocation of 20%, And Determine Number of assets shares to buy with an allocation of $10000.
+Install from source:
 ```bash
-trademan -cls stocks -gamma 1 -alloc 10000  -cycl-err 10 -max-wght 0.2
+pip install git+https://github.com/ottermatics/trademan.git
 ```
+
+## Quick Start
+
+### CLI Usage
+
+1. **Download Market Data**:
+```bash
+market_dl  # Downloads S&P 500 and ETF data
+```
+
+2. **Generate a Portfolio**:
+```bash
+# Create a Sharpe-optimized portfolio with $10,000 allocation
+trademan -cls stocks -alloc 10000 -opt sharpe
+
+# Minimum volatility ETF portfolio  
+trademan -cls etfs -opt min_volatility -alloc 100000 -in QQQ,SPY,VTI
+```
+
+### Python API
+
+```python
+import trademan
+
+# Get stock data for specific tickers
+data = trademan.get_tickers(['AAPL', 'MSFT', 'GOOGL'])
+
+# Create optimized portfolio
+weights = trademan.make_portfolio(
+    data, 
+    opt='sharpe',           # Optimization method
+    risk='ledoit_wolf',     # Risk model  
+    allocate_amount=10000   # Dollar amount
+)
+
+# Visualize the portfolio
+fig, ax = trademan.plot_portfolio(weights)
+```
+
+## CLI Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-cls` | Asset class: `etfs`, `stocks`, `all` | `all` |
+| `-opt` | Optimization: `sharpe`, `min_volatility`, `eff_return`, `eff_risk` | `sharpe` |
+| `-risk` | Risk model: `covariance`, `ledoit_wolf` | `ledoit_wolf` |
+| `-alloc` | Amount to allocate (shows share counts) | None |
+| `-gamma` | Weight regularization (higher = more diversified) | 2 |
+| `-in` | Include specific tickers (comma-separated) | None |
+| `-ex` | Exclude specific tickers (comma-separated) | None |
+| `-min-wght` | Minimum weight threshold for assets | 0.01 |
+| `-max-wght` | Maximum weight limit per asset | None |
+
+## Configuration
+
+Set environment variables to customize data storage:
+
+```bash
+export TRADEMAN_DATA_DIR="/path/to/data"      # Market data cache
+export TRADEMAN_MEDIA_DIR="/path/to/charts"   # Generated charts
+```
+
+## Examples
+
+### 1. Best Performing S&P 500 Stocks
+Create a portfolio favoring established companies with cycle penalties:
+
+```bash
+trademan -cls stocks -gamma 1 -alloc 10000 -cycl-err 10 -max-wght 0.2
+```
+
 ![Stocks Portfolio](./media/Stocks.png)
 
+### 2. Low Volatility ETF Portfolio
+Generate a conservative ETF allocation:
 
-2. Make A Portfolio Of Least Volatile ETFS: `QQQ,SCHG,VGT,SLV,VIG,SPY,VOO,VUG,IAU,PAVE` and determine the number of stock purchases for a $100000 allocation.
 ```bash
-trademan -cls etfs -gamma 0.1 -alloc 100000 -in QQQ,SCHG,VGT,SLV,VIG,SPY,VOO,VUG,IAU,PAVE -opt min_volatility
+trademan -cls etfs -gamma 0.1 -alloc 100000 \
+  -in QQQ,SCHG,VGT,SLV,VIG,SPY,VOO,VUG,IAU,PAVE \
+  -opt min_volatility
 ```
+
 ![ETF Portfolio](./media/ETFS_Min_Volatility.png)
+
+## How It Works
+
+1. **Data Collection**: Downloads historical price data using yfinance
+2. **Risk Modeling**: Calculates covariance matrices with Ledoit-Wolf shrinkage
+3. **Return Estimation**: Uses mean historical returns with optional adjustments
+4. **Optimization**: Applies modern portfolio theory via PyPortfolioOpt
+5. **Allocation**: Converts weights to discrete share quantities
+6. **Visualization**: Creates publication-ready portfolio charts
+
+## Dependencies
+
+- **PyPortfolioOpt**: Portfolio optimization algorithms
+- **yfinance**: Market data source
+- **pandas/numpy**: Data manipulation
+- **matplotlib**: Visualization
+- **diskcache**: Data caching
+- **scikit-learn**: Additional analytics
+
+## Development
+
+Install development dependencies:
+```bash
+pip install -e .[dev]
+```
+
+Run tests:
+```bash
+pytest
+```
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Contributing
+
+Contributions welcome! Please read [CONTRIBUTING.rst](CONTRIBUTING.rst) for guidelines.

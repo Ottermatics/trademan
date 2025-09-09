@@ -32,20 +32,20 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/soundsserious/trademan
+    $ git clone git://github.com/ottermatics/trademan
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl -OJL https://github.com/soundsserious/trademan/tarball/master
+    $ curl -OJL https://github.com/ottermatics/trademan/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
 .. code-block:: console
 
-    $ python setup.py install
+    $ pip install .
 
 
-.. _Github repo: https://github.com/soundsserious/trademan
-.. _tarball: https://github.com/soundsserious/trademan/tarball/master
+.. _Github repo: https://github.com/ottermatics/trademan
+.. _tarball: https://github.com/ottermatics/trademan/tarball/master
