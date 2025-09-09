@@ -7,7 +7,7 @@ import unittest
 
 from trademan import data
 from trademan.portfolio import *
-from trademan.trademan.data import get_tickers
+import os
 
 import subprocess as subp
 

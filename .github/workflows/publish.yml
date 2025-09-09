@@ -1,0 +1,208 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create GitHub release'
+        required: true
+        default: 'true'
+        type: boolean
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version-exists: ${{ steps.check-release.outputs.exists }}
+      version: ${{ steps.get-version.outputs.version }}
+      files-changed: ${{ steps.check-changes.outputs.changed }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get version from pyproject.toml  
+      id: get-version
+      run: |
+        VERSION=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['version'])")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $VERSION"
+    
+    - name: Check if release exists
+      id: check-release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if gh release view "v${{ steps.get-version.outputs.version }}" >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Release v${{ steps.get-version.outputs.version }} already exists"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Release v${{ steps.get-version.outputs.version }} does not exist"
+        fi
+    
+    - name: Check if Python files changed
+      id: check-changes
+      if: steps.check-release.outputs.exists == 'true'
+      run: |
+        TAG="v${{ steps.get-version.outputs.version }}"
+        if git diff --name-only $TAG HEAD | grep -E '\.(py|toml)$'; then
+          echo "changed=true" >> $GITHUB_OUTPUT
+          echo "Python files have changed since release $TAG"
+          exit 1
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+          echo "No Python files changed since release $TAG"
+        fi
+
+  test:
+    needs: check-version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.11"]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install tomli
+        pip install -e .[dev]
+    
+    - name: Test with pytest
+      run: |
+        pytest tests/ -v
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine tomli
+    
+    - name: Build package
+      run: |
+        python -m build
+    
+    - name: Check package
+      run: |
+        twine check dist/*
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/
+
+  publish:
+    needs: [check-version, build]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: dist/
+    
+    - name: Create GitHub Release
+      if: needs.check-version.outputs.version-exists == 'false' || github.event.inputs.create_release == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        VERSION="v${{ needs.check-version.outputs.version }}"
+        
+        # Generate release notes from git log
+        if git tag -l "$VERSION" | grep -q "$VERSION"; then
+          LAST_TAG=$(git tag --sort=-version:refname | grep -v "$VERSION" | head -n 1)
+        else
+          LAST_TAG=$(git tag --sort=-version:refname | head -n 1)
+        fi
+        
+        echo "# Release $VERSION" > RELEASE_NOTES.md
+        echo "" >> RELEASE_NOTES.md
+        
+        if [ -n "$LAST_TAG" ]; then
+          echo "## Changes since $LAST_TAG" >> RELEASE_NOTES.md
+          git log --pretty=format:"- %s (%h)" "$LAST_TAG"..HEAD >> RELEASE_NOTES.md
+        else
+          echo "## Initial Release" >> RELEASE_NOTES.md
+          echo "- First release of trademan" >> RELEASE_NOTES.md
+        fi
+        
+        gh release create "$VERSION" \
+          --title "Release $VERSION" \
+          --notes-file RELEASE_NOTES.md \
+          --draft=false \
+          --prerelease=false \
+          dist/*
+    
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        print-hash: true
+
+  docs:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .[dev]
+    
+    - name: Build documentation
+      run: |
+        cd docs
+        make html
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v3
+    
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v2
+      with:
+        path: 'docs/_build/html'
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v2
