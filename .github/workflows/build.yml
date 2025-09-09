@@ -18,6 +18,16 @@ jobs:
       with:
         fetch-depth: 0
     
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install tomli
+        # GitHub CLI is pre-installed on GitHub runners
+    
     - name: Get version from pyproject.toml
       id: get-version
       run: |
